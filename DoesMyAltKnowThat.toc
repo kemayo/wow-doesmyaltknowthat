@@ -1,0 +1,32 @@
+## Interface: 60000
+## Title: Does My Alt Know That?
+## Notes: Should I send that recipe to my alt?
+## Version: @project-version@
+## Author: Kemayo
+## eMail: kemayo at gmail dot com
+## X-Category: Professions
+## X-Donate: PayPal:kemayo AT gmail DOT com
+
+## SavedVariables: DoesMyAltKnowThatDB
+## SavedVariablesPerCharacter: DoesMyAltKnowThatDBPC
+
+## OptionalDeps: tekDebug, tekErr
+## X-Embeds: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, tekKonfig
+## LoadManagers: AddonLoader
+## X-LoadOn-Always: delayed
+## X-LoadOn-Slash: /doesmyaltknowthat
+
+lib\LibStub.lua
+lib\CallbackHandler-1.0\CallbackHandler-1.0.xml
+lib\LibDataBroker-1.1\LibDataBroker-1.1.lua
+lib\tekKonfig\tekKonfig.xml
+
+template\Database.lua
+template\UtilityFunctions.lua
+template\EventDispatcher.lua
+template\Module.lua
+
+# the core
+core.lua
+
+config.lua
