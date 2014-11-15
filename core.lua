@@ -12,19 +12,24 @@ core.defaults = {
 core.defaultsPC = {
 }
 
-local char, RECIPE
+local char, chars, RECIPE
 
 function core:OnLoad()
     self:InitDB()
 
     local name = UnitName("player")
-    if not core.db.characters[name] then
-        core.db.characters[name] = {
+    local realm = GetRealmName()
+    if not core.db.characters[realm] then
+        core.db.characters[realm] = {}
+    end
+    chars = core.db.characters[realm]
+    if not chars[name] then
+        chars[name] = {
             class = select(2, UnitClass('player')),
             professions = {},
         }
     end
-    char = core.db.characters[name].professions
+    char = chars[name].professions
 
     -- TODO: is this order constant across locales?
     RECIPE = select(7, GetAuctionItemClasses())
@@ -59,7 +64,7 @@ function core:OnTooltipSetItem(tooltip)
     end
     last_item = name
 
-    for alt, details in pairs(core.db.characters) do
+    for alt, details in pairs(chars) do
         Debug("Known on?", alt, details and details.professions[subclass])
         if details and details.professions[subclass] then
             -- alt knows this profession
@@ -108,17 +113,26 @@ function core:TRADE_SKILL_SHOW()
     if not char then return end
 
     local skill = GetTradeSkillLine()
-    if not skill or skill == UNKNOWN then return end
+    if not skill or skill == UNKNOWN then
+        Debug("Couldn't GetTradeSkillLine")
+        return
+    end
 
     -- just throw away old recipes
     char[skill] = {}
 
     local numRecipes = GetNumTradeSkills()
-    if not numRecipes or numRecipes == 0 then return end
-    
+    if not numRecipes or numRecipes == 0 then
+        Debug("We know no recipes", numRecipes)
+        return
+    end
+
     -- First line: a header?
     local skillName, skillType = GetTradeSkillInfo(1)   -- test the first line
-    if skillType ~= "header" then return end
+    if skillType ~= "header" then
+        Debug("First line isn't a header", skillName)
+        return
+    end
 
     for i = 1, numRecipes do
         skillName, skillType = GetTradeSkillInfo(i)
