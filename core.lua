@@ -39,10 +39,15 @@ function core:OnLoad()
     self:HookScript(ShoppingTooltip1, "OnTooltipSetItem")
     self:HookScript(ShoppingTooltip2, "OnTooltipSetItem")
 
+    self:HookScript(GameTooltip, "OnTooltipCleared")
+    self:HookScript(ItemRefTooltip, "OnTooltipCleared")
+    self:HookScript(ShoppingTooltip1, "OnTooltipCleared")
+    self:HookScript(ShoppingTooltip2, "OnTooltipCleared")
+
     self:RegisterEvent("TRADE_SKILL_SHOW")
 end
 
-local last_item
+local tooltip_modified = {}
 function core:OnTooltipSetItem(tooltip)
     local name, link = tooltip:GetItem()
     -- Debug("OnTooltipSetItem", name, link)
@@ -57,12 +62,11 @@ function core:OnTooltipSetItem(tooltip)
     end
 
     -- we're on a recipe here!
-    if last_item == name then
-        -- this happens twice, because of how recipes work. We want to happen on the second go-throuh
-        last_item = nil
+    if tooltip_modified[tooltip:GetName()] then
+        -- this happens twice, because of how recipes work
         return
     end
-    last_item = name
+    tooltip_modified[tooltip:GetName()] = true
 
     for alt, details in pairs(chars) do
         Debug("Known on?", alt, details and details.professions[subclass])
@@ -105,6 +109,10 @@ do
             return line:gsub("\n", "")
         end
     end
+end
+
+function core:OnTooltipCleared(tooltip)
+    tooltip_modified[tooltip:GetName()] = nil
 end
 
 -- Scanning recipes
