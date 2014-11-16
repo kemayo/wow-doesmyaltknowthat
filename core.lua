@@ -126,9 +126,6 @@ function core:TRADE_SKILL_SHOW()
         return
     end
 
-    -- just throw away old recipes
-    char[skill] = {}
-
     local numRecipes = GetNumTradeSkills()
     if not numRecipes or numRecipes == 0 then
         Debug("We know no recipes", numRecipes)
@@ -141,6 +138,9 @@ function core:TRADE_SKILL_SHOW()
         Debug("First line isn't a header", skillName)
         return
     end
+
+    -- just throw away old recipes
+    char[skill] = {}
 
     for i = 1, numRecipes do
         skillName, skillType = GetTradeSkillInfo(i)
