@@ -119,12 +119,25 @@ end
 
 function core:TRADE_SKILL_SHOW()
     if not char then return end
+    if not IsTradeSkillReady() then return end
 
     local skill = GetTradeSkillLine()
     if not skill or skill == UNKNOWN then
         Debug("Couldn't GetTradeSkillLine")
         return
     end
+
+    if IsTradeSkillLinked() then
+        Debug("Don't scan someone else's skills")
+        return
+    end
+
+    if TradeSkillFilterBar:IsShown() then
+        Debug("Don't scan if we're filtering")
+        return
+    end
+
+
 
     local numRecipes = GetNumTradeSkills()
     if not numRecipes or numRecipes == 0 then
@@ -133,28 +146,34 @@ function core:TRADE_SKILL_SHOW()
     end
 
     -- First line: a header?
-    local skillName, skillType = GetTradeSkillInfo(1)   -- test the first line
+    local skillName, skillType, numAvailable, isExpanded = GetTradeSkillInfo(1)   -- test the first line
     if skillType ~= "header" then
         Debug("First line isn't a header", skillName)
         return
     end
 
-    -- just throw away old recipes
-    char[skill] = {}
+    local skills = {}
 
     for i = 1, numRecipes do
-        skillName, skillType = GetTradeSkillInfo(i)
+        skillName, skillType, numAvailable, isExpanded = GetTradeSkillInfo(i)
 
         if skillType == "header" or skillType == "subheader" then
             -- bypass it
+            if not isExpanded then
+                Debug("Aborting skill scan, non-expanded header", skillName)
+                return
+            end
         else
             -- this gets the spellid... but that's not linkable to recipes without a huge mining job. Woo.
             Debug("recording skill line", skillName, skillType)
             link = GetTradeSkillRecipeLink(i)
             -- spellid
             local makes = tonumber(link:match("enchant:(%d+)"))
-            char[skill][skillName] = makes or true
+            skills[skillName] = makes or true
         end
     end
-    
+
+    -- just throw away old recipes
+    Debug("Actually recorded skills")
+    char[skill] = skills
 end
