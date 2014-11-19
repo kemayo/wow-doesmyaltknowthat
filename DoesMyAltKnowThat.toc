@@ -19,7 +19,6 @@
 lib\LibStub.lua
 lib\CallbackHandler-1.0\CallbackHandler-1.0.xml
 lib\LibDataBroker-1.1\LibDataBroker-1.1.lua
-lib\tekKonfig\tekKonfig.xml
 
 template\Database.lua
 template\UtilityFunctions.lua
@@ -28,5 +27,3 @@ template\Module.lua
 
 # the core
 core.lua
-
-config.lua
