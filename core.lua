@@ -168,7 +168,7 @@ function core:TRADE_SKILL_SHOW()
             Debug("recording skill line", skillName, skillType)
             link = GetTradeSkillRecipeLink(i)
             -- spellid
-            local makes = tonumber(link:match("enchant:(%d+)"))
+            local makes = link and tonumber(link:match("enchant:(%d+)")) or true
             skills[skillName] = makes or true
         end
     end
