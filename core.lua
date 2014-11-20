@@ -120,6 +120,7 @@ end
 function core:TRADE_SKILL_SHOW()
     if not char then return end
     if not IsTradeSkillReady() then return end
+    if IsNPCCrafting() then return end
 
     local skill = GetTradeSkillLine()
     if not skill or skill == UNKNOWN then
@@ -136,8 +137,6 @@ function core:TRADE_SKILL_SHOW()
         Debug("Don't scan if we're filtering")
         return
     end
-
-
 
     local numRecipes = GetNumTradeSkills()
     if not numRecipes or numRecipes == 0 then
