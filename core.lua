@@ -12,7 +12,7 @@ core.defaults = {
 core.defaultsPC = {
 }
 
-local char, chars, RECIPE
+local char, chars, RECIPE, ENCHANTING
 
 function core:OnLoad()
     self:InitDB()
@@ -33,6 +33,7 @@ function core:OnLoad()
 
     -- TODO: is this order constant across locales?
     RECIPE = select(7, GetAuctionItemClasses())
+    ENCHANTING = select(9, GetAuctionItemSubClasses(7))
 
     self:HookScript(GameTooltip, "OnTooltipSetItem")
     self:HookScript(ItemRefTooltip, "OnTooltipSetItem")
@@ -55,11 +56,11 @@ function core:OnTooltipSetItem(tooltip)
     local class, subclass = select(6, GetItemInfo(link))
     if class ~= RECIPE then return end
 
-    local created_item = self:recipeNameFromTooltip(tooltip)
-    if not created_item then
-        -- Debug("Couldn't find item")
+    local created_item = name:gsub("^.-: ", "")
+    if created_item == name then
         return
     end
+    Debug("Creates item:", created_item, subclass)
 
     -- we're on a recipe here!
     if tooltip_modified[tooltip:GetName()] then
@@ -85,37 +86,27 @@ function core:OnTooltipSetItem(tooltip)
     tooltip:Show()
 end
 
-do
-    local function GetLineAfterPattern(pattern, ...)
-        local matched
-        for i = 1, select("#", ...) do
-            local region = select(i, ...)
-            if region and region:GetObjectType() == "FontString" then
-                -- Debug(region:GetName(), region:GetText())
-                local text = region:GetText()
-                if text then
-                    if matched then
-                        return text
-                    end
-                    matched = text:match(pattern)
-                end
-            end
-        end
-    end
-    function core:recipeNameFromTooltip(tooltip)
-        -- If this is a fairly unmeddled-with tooltip, which I hope it is...
-        line = GetLineAfterPattern(USE_COLON, tooltip:GetRegions())
-        if line then
-            return line:gsub("\n", "")
-        end
-    end
-end
-
 function core:OnTooltipCleared(tooltip)
     tooltip_modified[tooltip:GetName()] = nil
 end
 
 -- Scanning recipes
+
+-- TODO: localize? find different strategy?
+local enchant_headers_need_munging = {
+    ["Weapon"] = true,
+    ["Ring"] = true,
+    ["Boots"] = true,
+    ["Bracers"] = true,
+    ["Chest"] = true,
+    ["Cloak"] = true,
+    ["Gloves"] = true,
+    ["Shields and Off-Hands"] = true, -- this one is a cluster-fuck
+}
+local header_transforms = {
+    ["Weapons"] = "Weapon",
+    ["Bracers"] = "Bracer",
+}
 
 function core:TRADE_SKILL_SHOW()
     if not char then return end
@@ -152,6 +143,7 @@ function core:TRADE_SKILL_SHOW()
     end
 
     local skills = {}
+    local last_header
 
     for i = 1, numRecipes do
         skillName, skillType, numAvailable, isExpanded = GetTradeSkillInfo(i)
@@ -162,12 +154,16 @@ function core:TRADE_SKILL_SHOW()
                 Debug("Aborting skill scan, non-expanded header", skillName)
                 return
             end
+            last_header = header_transforms[skillName] or skillName
         else
             -- this gets the spellid... but that's not linkable to recipes without a huge mining job. Woo.
             Debug("recording skill line", skillName, skillType)
             link = GetTradeSkillRecipeLink(i)
             -- spellid
             local makes = link and tonumber(link:match("enchant:(%d+)")) or true
+            if skill == ENCHANTING and enchant_headers_need_munging[last_header] then
+                skillName = "Enchant " .. last_header .. " - " .. skillName
+            end
             skills[skillName] = makes or true
         end
     end
