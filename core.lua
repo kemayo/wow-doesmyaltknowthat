@@ -101,6 +101,7 @@ local enchant_headers_need_munging = {
     ["Chest"] = true,
     ["Cloak"] = true,
     ["Gloves"] = true,
+    ["Neck"] = true,
     ["Shields and Off-Hands"] = true, -- this one is a cluster-fuck
 }
 local header_transforms = {
