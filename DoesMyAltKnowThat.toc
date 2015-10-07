@@ -26,4 +26,5 @@ template\EventDispatcher.lua
 template\Module.lua
 
 # the core
+item_spell_map.lua
 core.lua
