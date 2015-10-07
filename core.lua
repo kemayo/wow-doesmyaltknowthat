@@ -53,14 +53,14 @@ function core:OnTooltipSetItem(tooltip)
     local name, link = tooltip:GetItem()
     -- Debug("OnTooltipSetItem", name, link)
     if not name then return end
+    local itemid = link:match("item:(%d+)")
+    if not itemid then return end
+    local itemid = tonumber(itemid)
+    if not ns.itemid_to_spellid[itemid] then return end
+    local spellid = ns.itemid_to_spellid[itemid]
+
     local class, subclass = select(6, GetItemInfo(link))
     if class ~= RECIPE then return end
-
-    local created_item = name:gsub("^.-: ", "")
-    if created_item == name then
-        return
-    end
-    Debug("Creates item:", created_item, subclass)
 
     -- we're on a recipe here!
     if tooltip_modified[tooltip:GetName()] then
@@ -74,7 +74,7 @@ function core:OnTooltipSetItem(tooltip)
         if details and details.professions[subclass] then
             -- alt knows this profession
             local color = RAID_CLASS_COLORS[details.class] or NORMAL_FONT_COLOR
-            if details.professions[subclass][created_item] then
+            if details.professions[subclass][spellid] then
                 tooltip:AddDoubleLine(alt, ITEM_SPELL_KNOWN, color.r, color.g, color.b, GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b)
             else
                 -- ...and doesn't know this recipe!
@@ -91,23 +91,6 @@ function core:OnTooltipCleared(tooltip)
 end
 
 -- Scanning recipes
-
--- TODO: localize? find different strategy?
-local enchant_headers_need_munging = {
-    ["Weapon"] = true,
-    ["Ring"] = true,
-    ["Boots"] = true,
-    ["Bracers"] = true,
-    ["Chest"] = true,
-    ["Cloak"] = true,
-    ["Gloves"] = true,
-    ["Neck"] = true,
-    ["Shields and Off-Hands"] = true, -- this one is a cluster-fuck
-}
-local header_transforms = {
-    ["Weapons"] = "Weapon",
-    ["Bracers"] = "Bracer",
-}
 
 function core:TRADE_SKILL_SHOW()
     if not char then return end
@@ -144,7 +127,6 @@ function core:TRADE_SKILL_SHOW()
     end
 
     local skills = {}
-    local last_header
 
     for i = 1, numRecipes do
         skillName, skillType, numAvailable, isExpanded = GetTradeSkillInfo(i)
@@ -155,17 +137,17 @@ function core:TRADE_SKILL_SHOW()
                 Debug("Aborting skill scan, non-expanded header", skillName)
                 return
             end
-            last_header = header_transforms[skillName] or skillName
         else
             -- this gets the spellid... but that's not linkable to recipes without a huge mining job. Woo.
             Debug("recording skill line", skillName, skillType)
             link = GetTradeSkillRecipeLink(i)
             -- spellid
-            local makes = link and tonumber(link:match("enchant:(%d+)")) or true
-            if skill == ENCHANTING and enchant_headers_need_munging[last_header] then
-                skillName = "Enchant " .. last_header .. " - " .. skillName
+            local makes = link and tonumber(link:match("enchant:(%d+)"))
+            if makes then
+                skills[makes] = true
+            else
+                Debug("Couldn't extract spellid", link)
             end
-            skills[skillName] = makes or true
         end
     end
 
