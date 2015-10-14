@@ -53,9 +53,15 @@ function core:OnTooltipSetItem(tooltip)
     local name, link = tooltip:GetItem()
     -- Debug("OnTooltipSetItem", name, link)
     if not name then return end
-    local itemid = link:match("item:(%d+)")
-    if not itemid then return end
-    local itemid = tonumber(itemid)
+    local itemid = tonumber(link:match("item:(%d+)"))
+    if not itemid or itemid == 0 then
+        local owner = tooltip:GetOwner()
+        if owner and owner.link then
+            link = owner.link
+            itemid = tonumber(link:match("item:(%d+)"))
+        end
+        if not itemid or itemid == 0 then return end
+    end
     if not ns.itemid_to_spellid[itemid] then return end
     local spellid = ns.itemid_to_spellid[itemid]
 
