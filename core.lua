@@ -73,8 +73,12 @@ function core:OnTooltipSetItem(tooltip)
     local itemid = tonumber(link:match("item:(%d+)"))
     if not itemid or itemid == 0 then
         local owner = tooltip:GetOwner()
-        if owner and owner.link then
-            link = owner.link
+        if owner then
+            if owner.link then
+                link = owner.link
+            elseif owner:GetName() == "TradeSkillSkillIcon" then
+                link = GetTradeSkillItemLink(TradeSkillFrame.selectedSkill)
+            end
             itemid = tonumber(link:match("item:(%d+)"))
         end
         if not itemid or itemid == 0 then return end
@@ -86,7 +90,7 @@ function core:OnTooltipSetItem(tooltip)
     end
     tooltip_modified[tooltip:GetName()] = true
 
-    local class, subclass = select(6, GetItemInfo(link))
+    local name, _, _, _, _, class, subclass = GetItemInfo(link)
     if class == RECIPE then
         if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
