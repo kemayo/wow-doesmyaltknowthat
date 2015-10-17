@@ -195,8 +195,9 @@ end
 
 function core:ScanGlyphs()
     if not char then return Debug("Not recording glyphs", "DB not ready") end
-    if not IsGlyphFlagSet(GLYPH_FILTER_KNOWN) then return Debug("Not recording glyphs", "Known glyphs filter disabled") end
+    if GLYPH_FILTER_KNOWN and not IsGlyphFlagSet(GLYPH_FILTER_KNOWN) then return Debug("Not recording glyphs", "Known glyphs filter disabled") end
     if GlyphFrameSearchBox and GlyphFrameSearchBox:GetText() ~= "" then return Debug("Not recording glyphs", "Glyph name filter enabled") end
+    if GetNumGlyphs() == 0 then return Debug("Not recording glyphs", "No glyphs") end
 
     local glyphs = {}
     for i=1, GetNumGlyphs() do
