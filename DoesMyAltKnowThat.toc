@@ -1,4 +1,4 @@
-## Interface: 60000
+## Interface: 70000
 ## Title: Does My Alt Know That?
 ## Notes: Should I send that recipe to my alt?
 ## Version: @project-version@
