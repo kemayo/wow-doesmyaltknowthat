@@ -33,8 +33,8 @@ function core:OnLoad()
     char = chars[name]
 
     -- TODO: is this order constant across locales?
-    local _
-    _, _, _, _, GLYPH, _, RECIPE = GetAuctionItemClasses()
+    GLYPH = GetItemClassInfo(LE_ITEM_CLASS_GLYPH)
+    RECIPE = GetItemClassInfo(LE_ITEM_CLASS_RECIPE)
 
     self:HookScript(GameTooltip, "OnTooltipSetItem")
     self:HookScript(ItemRefTooltip, "OnTooltipSetItem")
