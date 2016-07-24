@@ -1,25 +1,25 @@
 #!/usr/bin/python
 
-import gzip
 import sqlite3
+import http.cookiejar
 
-from io import BytesIO, StringIO
-from urllib.request import Request, urlopen
+import requests
 
 __version__ = 1
 USER_AGENT = 'SilverDragon/%s +http://davidlynch.org' % __version__
 
+
 class Fetch:
     """A store for values by date, sqlite-backed"""
 
-    def __init__(self, storepath, cachetime = "+200 day"):
+    def __init__(self, storepath, cachetime="+1 day"):
         """Initializes the store; creates tables if required
 
         storepath is the path to a sqlite database, and will be created
         if it doesn't already exist. (":memory:" will store everything
         in-memory, if you only need to use this as a temporary thing).
         """
-        store = sqlite3.connect(storepath)
+        store = sqlite3.connect(storepath + '.db')
         self.store = store
         c = store.cursor()
         c.execute("""CREATE TABLE IF NOT EXISTS cache (url TEXT, content BLOB, time TEXT, PRIMARY KEY (url))""")
@@ -27,6 +27,18 @@ class Fetch:
         c.close()
 
         self.cachetime = cachetime
+
+        lwp_cookiejar = http.cookiejar.LWPCookieJar()
+        try:
+            lwp_cookiejar.load(storepath + '.cookies', ignore_discard=True)
+        except Exception as e:
+            pass
+
+        self.session = requests.Session()
+        self.session.cookies = lwp_cookiejar
+        self.session.headers.update({
+            'User-agent': USER_AGENT
+        })
 
     def __call__(self, url, **kw):
         return self.get(url, **kw)
@@ -43,9 +55,9 @@ class Fetch:
             c.close()
             if row:
                 return row[0]
-        data = _fetch(url, **kw)
-        self.__set(url, data)
-        return data
+        data = self.session.get(url, **kw)
+        self.__set(url, data.text)
+        return data.text
 
     def __set(self, url, value):
         """Add a value to the store, at the current time
@@ -58,21 +70,8 @@ class Fetch:
         self.store.commit()
         c.close()
 
-def _fetch(url, data=None, ungzip=True):
-    """A generic URL-fetcher, which handles gzipped content, returns a string"""
-    request = Request(url)
-    request.add_header('Accept-encoding', 'gzip')
-    request.add_header('User-agent', USER_AGENT)
-    try:
-        f = urlopen(request, data)
-    except Exception as e:
-        return None
-    data = f.read()
-    if ungzip and f.headers.get('content-encoding', '') == 'gzip':
-        data = gzip.GzipFile(fileobj=BytesIO(data), mode='r').read()
-        try:
-            data = data.decode()
-        except UnicodeDecodeError:
-            data = data.decode('latin1')
-    f.close()
-    return data
+    def flush(self, cachetime="-7 days"):
+        c = self.store.execute("""DELETE FROM cache WHERE time < datetime('now', ?)""", (cachetime,))
+        self.store.commit()
+        self.store.execute("""VACUUM""")
+        return c.rowcount
