@@ -12,7 +12,7 @@ core.defaults = {
 core.defaultsPC = {
 }
 
-local char, chars, RECIPE, GLYPH
+local char, chars
 
 function core:OnLoad()
     self:InitDB()
@@ -32,10 +32,6 @@ function core:OnLoad()
     end
     char = chars[name]
 
-    -- TODO: is this order constant across locales?
-    GLYPH = GetItemClassInfo(LE_ITEM_CLASS_GLYPH)
-    RECIPE = GetItemClassInfo(LE_ITEM_CLASS_RECIPE)
-
     self:HookScript(GameTooltip, "OnTooltipSetItem")
     self:HookScript(ItemRefTooltip, "OnTooltipSetItem")
     self:HookScript(ShoppingTooltip1, "OnTooltipSetItem")
@@ -46,24 +42,8 @@ function core:OnLoad()
     self:HookScript(ShoppingTooltip1, "OnTooltipCleared")
     self:HookScript(ShoppingTooltip2, "OnTooltipCleared")
 
-    self:RegisterEvent("TRADE_SKILL_SHOW")
-
-    if IsAddOnLoaded("Blizzard_GlyphUI") then
-        self:ScanGlyphs()
-    else
-        self:RegisterEvent("ADDON_LOADED")
-    end
-    self:RegisterEvent("GLYPH_ADDED", "GLYPH_UPDATED")
+    self:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
 end
-
-function core:ADDON_LOADED(event, addon)
-    if addon ~= "Blizzard_GlyphUI" then
-        return
-    end
-    self:ScanGlyphs()
-    self:UnregisterEvent("ADDON_LOADED")
-end
-
 
 local tooltip_modified = {}
 function core:OnTooltipSetItem(tooltip)
@@ -76,8 +56,8 @@ function core:OnTooltipSetItem(tooltip)
         if owner then
             if owner.link then
                 link = owner.link
-            elseif owner:GetName() == "TradeSkillSkillIcon" then
-                link = GetTradeSkillItemLink(TradeSkillFrame.selectedSkill)
+            elseif TradeSkillFrame and owner:GetParent() == TradeSkillFrame.DetailsFrame.Contents then
+                link = C_TradeSkillUI.GetRecipeItemLink(TradeSkillFrame.RecipeList:GetSelectedRecipeID())
             end
             itemid = tonumber(link:match("item:(%d+)"))
         end
@@ -90,31 +70,17 @@ function core:OnTooltipSetItem(tooltip)
     end
     tooltip_modified[tooltip:GetName()] = true
 
-    local name, _, _, _, _, class, subclass = GetItemInfo(link)
-    if class == RECIPE then
+    local _, _, recipetype, _, _, class, subclass = GetItemInfoInstant(link)
+    if class == LE_ITEM_CLASS_RECIPE then
         if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
         -- we're on a recipe here!
         for alt, details in pairs(chars) do
-            Debug("Known on?", alt, details and details.professions[subclass])
-            if details and details.professions[subclass] then
+            Debug("Known on?", alt, details and details.professions[recipetype])
+            if details and details.professions[recipetype] then
                 -- alt knows this profession
                 local color = RAID_CLASS_COLORS[details.class] or NORMAL_FONT_COLOR
-                if details.professions[subclass][spellid] then
-                    tooltip:AddDoubleLine(alt, ITEM_SPELL_KNOWN, color.r, color.g, color.b, GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b)
-                else
-                    -- ...and doesn't know this recipe!
-                    tooltip:AddDoubleLine(alt, LEARN, color.r, color.g, color.b, RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b)
-                end
-            end
-        end
-    end
-    if class == GLYPH then
-        name = name:gsub("^Glyph of ", "")
-        for alt, details in pairs(chars) do
-            if details and details.glyphs and details.glyphs[name] ~= nil then
-                local color = RAID_CLASS_COLORS[details.class] or NORMAL_FONT_COLOR
-                if details.glyphs[name] then
+                if details.professions[recipetype][spellid] then
                     tooltip:AddDoubleLine(alt, ITEM_SPELL_KNOWN, color.r, color.g, color.b, GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b)
                 else
                     -- ...and doesn't know this recipe!
@@ -135,56 +101,32 @@ end
 
 -- /spew DMAKT:GetModule("core").db.characters[GetRealmName()][UnitName("player")]
 
-function core:TRADE_SKILL_SHOW()
+function core:TRADE_SKILL_LIST_UPDATE()
     if not (char and char.professions) then return Debug("Not recording skill", "DB not ready") end
-    if not IsTradeSkillReady() then return Debug("Not recording skill", "not ready") end
-    if IsNPCCrafting() then return Debug("Not recording skill", "NPC crafting") end
+    if not C_TradeSkillUI.IsTradeSkillReady() then return Debug("Not recording skill", "not ready") end
+    if C_TradeSkillUI.IsNPCCrafting() then return Debug("Not recording skill", "NPC crafting") end
+    if C_TradeSkillUI.IsTradeSkillLinked() or C_TradeSkillUI.IsTradeSkillGuild() then
+        return Debug("Not recording skill", "Don't scan someone else's skills")
+    end
 
-    local skill = GetTradeSkillLine()
+    local _, skill = C_TradeSkillUI.GetTradeSkillLine()
     if not skill or skill == UNKNOWN then
         return Debug("Not recording skill", "Couldn't GetTradeSkillLine")
     end
 
-    if IsTradeSkillLinked() then
-        return Debug("Not recording skill", "Don't scan someone else's skills")
-    end
+    local recipes = C_TradeSkillUI.GetAllRecipeIDs()
 
-    if TradeSkillFilterBar:IsShown() then
-        return Debug("Not recording skill", "Don't scan if we're filtering")
-    end
-
-    local numRecipes = GetNumTradeSkills()
-    if not numRecipes or numRecipes == 0 then
+    if not recipes or #recipes == 0 then
         return Debug("Not recording skill", "We know no recipes", numRecipes)
-    end
-
-    -- First line: a header?
-    local skillName, skillType, numAvailable, isExpanded = GetTradeSkillInfo(1)   -- test the first line
-    if skillType ~= "header" then
-        return Debug("Not recording skill", "First line isn't a header", skillName)
     end
 
     local skills = {}
 
-    for i = 1, numRecipes do
-        skillName, skillType, numAvailable, isExpanded = GetTradeSkillInfo(i)
-
-        if skillType == "header" or skillType == "subheader" then
-            -- bypass it
-            if not isExpanded then
-                return Debug("Not recording skill", "Aborting skill scan, non-expanded header", skillName)
-            end
-        else
-            -- this gets the spellid... but that's not linkable to recipes without a huge mining job. Woo.
-            Debug("recording skill line", skillName, skillType)
-            link = GetTradeSkillRecipeLink(i)
-            -- spellid
-            local makes = link and tonumber(link:match("enchant:(%d+)"))
-            if makes then
-                skills[makes] = true
-            else
-                Debug("Couldn't extract spellid", link)
-            end
+    local recipe = {}
+    for i, recipeid in pairs(recipes) do
+        C_TradeSkillUI.GetRecipeInfo(recipeid, recipe)
+        if recipe.type == 'recipe' and recipe.learned then
+            skills[recipeid] = true
         end
     end
 
@@ -192,22 +134,3 @@ function core:TRADE_SKILL_SHOW()
     Debug("Actually recorded skills")
     char.professions[skill] = skills
 end
-
-function core:ScanGlyphs()
-    if not char then return Debug("Not recording glyphs", "DB not ready") end
-    if GLYPH_FILTER_KNOWN and not IsGlyphFlagSet(GLYPH_FILTER_KNOWN) then return Debug("Not recording glyphs", "Known glyphs filter disabled") end
-    if GlyphFrameSearchBox and GlyphFrameSearchBox:GetText() ~= "" then return Debug("Not recording glyphs", "Glyph name filter enabled") end
-    if GetNumGlyphs() == 0 then return Debug("Not recording glyphs", "No glyphs") end
-
-    local glyphs = {}
-    for i=1, GetNumGlyphs() do
-        local name, glyphType, isKnown, icon, glyphID, link, subText = GetGlyphInfo(i)
-        if name ~= "header" then
-            glyphs[name] = isKnown
-        end
-    end
-    char.glyphs = glyphs
-    Debug("Actually recorded glyphs")
-end
-core.GLYPH_UPDATED = core.ScanGlyphs
-core.GLYPH_ADDED = core.ScanGlyphs
