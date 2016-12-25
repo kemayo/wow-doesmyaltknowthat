@@ -58,6 +58,9 @@ function core:OnTooltipSetItem(tooltip)
                 link = owner.link
             elseif TradeSkillFrame and owner:GetParent() == TradeSkillFrame.DetailsFrame.Contents then
                 link = C_TradeSkillUI.GetRecipeItemLink(TradeSkillFrame.RecipeList:GetSelectedRecipeID())
+            elseif owner.BuyItem then
+                -- Basically: GnomishVendorShrinker
+                link = GetMerchantItemLink(owner:GetID())
             end
             itemid = tonumber(link:match("item:(%d+)"))
         end
@@ -74,6 +77,7 @@ function core:OnTooltipSetItem(tooltip)
     if class == LE_ITEM_CLASS_RECIPE then
         if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
+        Debug("Updating tooltip", link, itemid, spellid)
         -- we're on a recipe here!
         for alt, details in pairs(chars) do
             Debug("Known on?", alt, details and details.professions[recipetype])
