@@ -1,4 +1,4 @@
-## Interface: 70300
+## Interface: 80000
 ## Title: Does My Alt Know That?
 ## Notes: Should I send that recipe to my alt?
 ## Version: @project-version@
@@ -16,9 +16,7 @@
 ## X-LoadOn-Always: delayed
 ## X-LoadOn-Slash: /doesmyaltknowthat
 
-lib\LibStub.lua
-lib\CallbackHandler-1.0\CallbackHandler-1.0.xml
-lib\LibDataBroker-1.1\LibDataBroker-1.1.lua
+embeds.xml
 
 template\Database.lua
 template\UtilityFunctions.lua
