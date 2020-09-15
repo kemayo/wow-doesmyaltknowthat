@@ -45,6 +45,30 @@ function core:OnLoad()
     self:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
 end
 
+function core:OnLogin()
+    -- Clean up professions the character no longer knows
+    local professions_to_parent = {}
+    for _, professionid in ipairs(C_TradeSkillUI.GetAllProfessionTradeSkillLines()) do
+        local name, _, _, _, parentid = C_TradeSkillUI.GetTradeSkillLineInfoByID(professionid)
+        if parentid then
+            local parentname = C_TradeSkillUI.GetTradeSkillLineInfoByID(parentid)
+            professions_to_parent[name] = parentname
+        end
+    end
+    local char_professions = {}
+    for _, profession in ipairs({GetProfessions()}) do
+        -- We know "Blacksmithing"
+        char_professions[GetProfessionInfo(profession)] = true
+    end
+    for profession in pairs(char.professions) do
+        -- A recipe is associated with "Kul Tiran Blacksmithing"
+        if professions_to_parent[profession] and not char_professions[professions_to_parent[profession]] then
+            self.Print(("%s doesn't know %s any more, forgetting its recipes"):format(UnitName('player'), professions_to_parent[profession]))
+            char.professions[profession] = nil
+        end
+    end
+end
+
 local tooltip_modified = {}
 function core:OnTooltipSetItem(tooltip)
     local name, link = tooltip:GetItem()
@@ -77,7 +101,7 @@ function core:OnTooltipSetItem(tooltip)
     if class == LE_ITEM_CLASS_RECIPE then
         if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
-        Debug("Updating tooltip", link, itemid, spellid)
+        Debug("Updating tooltip", link, itemid, spellid, recipetype)
         -- we're on a recipe here!
         for alt, details in pairs(chars) do
             Debug("Known on?", alt, details and details.professions[recipetype])
