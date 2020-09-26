@@ -137,7 +137,7 @@ function core:TRADE_SKILL_LIST_UPDATE()
         return Debug("Not recording skill", "Don't scan someone else's skills")
     end
 
-    local _, skill = C_TradeSkillUI.GetTradeSkillLine()
+    local _, skill, _, _, _, _, parentskill = C_TradeSkillUI.GetTradeSkillLine()
     if not skill or skill == UNKNOWN then
         return Debug("Not recording skill", "Couldn't GetTradeSkillLine")
     end
@@ -151,7 +151,7 @@ function core:TRADE_SKILL_LIST_UPDATE()
     local skills = {}
 
     local recipe = {}
-    for i, recipeid in pairs(recipes) do
+    for _, recipeid in pairs(recipes) do
         C_TradeSkillUI.GetRecipeInfo(recipeid, recipe)
         if recipe.type == 'recipe' and recipe.learned then
             skills[recipeid] = true
@@ -160,5 +160,5 @@ function core:TRADE_SKILL_LIST_UPDATE()
 
     -- just throw away old recipes
     Debug("Actually recorded skills")
-    char.professions[skill] = skills
+    char.professions[parentskill or skill] = skills
 end
