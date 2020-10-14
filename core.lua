@@ -149,16 +149,17 @@ function core:TRADE_SKILL_LIST_UPDATE()
     end
 
     local skills = {}
+    local count = 0
 
-    local recipe = {}
     for _, recipeid in pairs(recipes) do
-        C_TradeSkillUI.GetRecipeInfo(recipeid, recipe)
+        local recipe = C_TradeSkillUI.GetRecipeInfo(recipeid)
         if recipe.type == 'recipe' and recipe.learned then
             skills[recipeid] = true
+            count = count + 1
         end
     end
 
     -- just throw away old recipes
-    Debug("Actually recorded skills")
+    Debug("Actually recorded recipes", skill, count)
     char.professions[parentskill or skill] = skills
 end
