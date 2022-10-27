@@ -44,7 +44,7 @@ def fetch_data():
             item = json.loads(item_page)
 
             # Note: there'll be multiple spellid links. I *think* we can trust the first one to be the "teaches" spellid
-            spellid_match = re.search(r'<a href="/spell=(\d+)"', item["tooltip"])
+            spellid_match = re.search(r'<a href="/spell=(\d+)["/]', item["tooltip"])
             if spellid_match:
                 print("-", itemid, ":", item["name"], ":", spellid_match.group(1))
                 data.append((int(itemid), int(spellid_match.group(1)), item["name"].replace("\'", "'")))
