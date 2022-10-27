@@ -49,10 +49,9 @@ function core:OnLogin()
     -- Clean up professions the character no longer knows
     local professions_to_parent = {}
     for _, professionid in ipairs(C_TradeSkillUI.GetAllProfessionTradeSkillLines()) do
-        local name, _, _, _, parentid = C_TradeSkillUI.GetTradeSkillLineInfoByID(professionid)
-        if parentid then
-            local parentname = C_TradeSkillUI.GetTradeSkillLineInfoByID(parentid)
-            professions_to_parent[name] = parentname
+        local info = C_TradeSkillUI.GetProfessionInfoBySkillLineID(professionid)
+        if info and info.parentProfessionName then
+            professions_to_parent[info.professionName] = info.parentProfessionName
         end
     end
     local char_professions = {}
@@ -137,9 +136,9 @@ function core:TRADE_SKILL_LIST_UPDATE()
         return Debug("Not recording skill", "Don't scan someone else's skills")
     end
 
-    local _, skill, _, _, _, _, parentskill = C_TradeSkillUI.GetTradeSkillLine()
-    if not skill or skill == UNKNOWN then
-        return Debug("Not recording skill", "Couldn't GetTradeSkillLine")
+    local skillLevel, professionID, skillModifier, profession, isPrimaryProfession, professionName, maxSkillLevel, expansionName = C_TradeSkillUI.GetBaseProfessionInfo()
+    if not professionName or professionName == UNKNOWN then
+        return Debug("Not recording skill", "Couldn't GetBaseProfessionInfo")
     end
 
     local recipes = C_TradeSkillUI.GetAllRecipeIDs()
@@ -160,6 +159,6 @@ function core:TRADE_SKILL_LIST_UPDATE()
     end
 
     -- just throw away old recipes
-    Debug("Actually recorded recipes", skill, count)
-    char.professions[parentskill or skill] = skills
+    Debug("Actually recorded recipes", professionName, count)
+    char.professions[professionName] = skills
 end
