@@ -14,6 +14,13 @@ core.defaultsPC = {
 
 local char, chars
 
+local function GetTooltipItem(tooltip)
+    if _G.TooltipDataProcessor then
+        return TooltipUtil.GetDisplayedItem(tooltip)
+    end
+    return tooltip:GetItem()
+end
+
 function core:OnLoad()
     self:InitDB()
 
@@ -32,10 +39,16 @@ function core:OnLoad()
     end
     char = chars[name]
 
-    self:HookScript(GameTooltip, "OnTooltipSetItem")
-    self:HookScript(ItemRefTooltip, "OnTooltipSetItem")
-    self:HookScript(ShoppingTooltip1, "OnTooltipSetItem")
-    self:HookScript(ShoppingTooltip2, "OnTooltipSetItem")
+    if _G.TooltipDataProcessor then
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+            self:OnTooltipSetItem(tooltip)
+        end)
+    else
+        self:HookScript(GameTooltip, "OnTooltipSetItem")
+        self:HookScript(ItemRefTooltip, "OnTooltipSetItem")
+        self:HookScript(ShoppingTooltip1, "OnTooltipSetItem")
+        self:HookScript(ShoppingTooltip2, "OnTooltipSetItem")
+    end
 
     self:HookScript(GameTooltip, "OnTooltipCleared")
     self:HookScript(ItemRefTooltip, "OnTooltipCleared")
@@ -70,7 +83,7 @@ end
 
 local tooltip_modified = {}
 function core:OnTooltipSetItem(tooltip)
-    local name, link = tooltip:GetItem()
+    local name, link = GetTooltipItem(tooltip)
     -- Debug("OnTooltipSetItem", name, link)
     if not name then return end
     local itemid = tonumber(link:match("item:(%d+)"))
@@ -97,7 +110,7 @@ function core:OnTooltipSetItem(tooltip)
     tooltip_modified[tooltip:GetName()] = true
 
     local _, _, recipetype, _, _, class, subclass = GetItemInfoInstant(link)
-    if class == LE_ITEM_CLASS_RECIPE then
+    if class == Enum.ItemClass.Recipe then
         if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
         Debug("Updating tooltip", link, itemid, spellid, recipetype)
