@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from fetch import Fetch
 
 WOWHEAD_URL = 'https://www.wowhead.com'
+WOWHEAD_TOOLTIP_URL = 'https://nether.wowhead.com/tooltip'
 
 
 def soup(html):
@@ -38,7 +39,8 @@ def fetch_data():
             itemid = itemid_match.group(1)
 
             # this is the super-lightweight page used for the "powered by wowhead" tooltips
-            item_page = fetch('%s/tooltip/item/%s' % (WOWHEAD_URL, itemid))
+            # print("Fetching item", '%s/item/%s' % (WOWHEAD_TOOLTIP_URL, itemid))
+            item_page = fetch('%s/item/%s' % (WOWHEAD_TOOLTIP_URL, itemid))
             if type(item_page) == bytes:
                 item_page = item_page.decode('utf-8')
             item = json.loads(item_page)
