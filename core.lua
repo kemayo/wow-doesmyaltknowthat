@@ -149,8 +149,8 @@ function core:TRADE_SKILL_LIST_UPDATE()
         return Debug("Not recording skill", "Don't scan someone else's skills")
     end
 
-    local skillLevel, professionID, skillModifier, profession, isPrimaryProfession, professionName, maxSkillLevel, expansionName = C_TradeSkillUI.GetBaseProfessionInfo()
-    if not professionName or professionName == UNKNOWN then
+    local info = C_TradeSkillUI.GetBaseProfessionInfo()
+    if not info or info.professionName == UNKNOWN then
         return Debug("Not recording skill", "Couldn't GetBaseProfessionInfo")
     end
 
@@ -165,13 +165,13 @@ function core:TRADE_SKILL_LIST_UPDATE()
 
     for _, recipeid in pairs(recipes) do
         local recipe = C_TradeSkillUI.GetRecipeInfo(recipeid)
-        if recipe.type == 'recipe' and recipe.learned then
+        if recipe and recipe.learned then
             skills[recipeid] = true
             count = count + 1
         end
     end
 
     -- just throw away old recipes
-    Debug("Actually recorded recipes", professionName, count)
-    char.professions[professionName] = skills
+    Debug("Actually recorded recipes", info.professionName, count)
+    char.professions[info.professionName] = skills
 end
