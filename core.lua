@@ -83,10 +83,11 @@ end
 
 local tooltip_modified = {}
 function core:OnTooltipSetItem(tooltip)
-    local name, link = GetTooltipItem(tooltip)
+    local name, link, itemid = GetTooltipItem(tooltip)
     -- Debug("OnTooltipSetItem", name, link)
-    if not name then return end
-    local itemid = tonumber(link:match("item:(%d+)"))
+    if not (name and link) then return end
+    -- Recipes on vendors give the link for the produced item and the itemid for the recipe, so trust the itemid if it's given
+    local itemid = itemid or tonumber(link:match("item:(%d+)"))
     if not itemid or itemid == 0 then
         local owner = tooltip:GetOwner()
         if owner then
@@ -109,7 +110,7 @@ function core:OnTooltipSetItem(tooltip)
     end
     tooltip_modified[tooltip:GetName()] = true
 
-    local _, _, recipetype, _, _, class, subclass = GetItemInfoInstant(link)
+    local _, _, recipetype, _, _, class, subclass = GetItemInfoInstant(itemid)
     if class == Enum.ItemClass.Recipe then
         if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
