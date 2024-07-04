@@ -1,5 +1,5 @@
 local myname, ns = ...
-local myfullname = GetAddOnMetadata(myname, "Title")
+local myfullname = C_AddOns.GetAddOnMetadata(myname, "Title")
 
 DMAKT = ns
 
@@ -110,7 +110,7 @@ function core:OnTooltipSetItem(tooltip)
     end
     tooltip_modified[tooltip:GetName()] = true
 
-    local _, _, recipetype, _, _, class, subclass = GetItemInfoInstant(itemid)
+    local _, _, recipetype, _, _, class, subclass = C_Item.GetItemInfoInstant(itemid)
     if class == Enum.ItemClass.Recipe then
         if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
