@@ -19,6 +19,7 @@ def soup(html):
 def fetch_data():
     fetch = Fetch("wowhead", cachetime="+200 day")
 
+    errors = []
     data = []
     items_page = fetch('%s/items=9' % WOWHEAD_URL)
     items_soup = soup(items_page)
@@ -38,21 +39,26 @@ def fetch_data():
         for itemid_match in re.finditer(r'"id":\s*(\d+)', data_match.group(1)):
             itemid = itemid_match.group(1)
 
-            # this is the super-lightweight page used for the "powered by wowhead" tooltips
-            # print("Fetching item", '%s/item/%s' % (WOWHEAD_TOOLTIP_URL, itemid))
-            item_page = fetch('%s/item/%s' % (WOWHEAD_TOOLTIP_URL, itemid))
-            if type(item_page) == bytes:
-                item_page = item_page.decode('utf-8')
-            item = json.loads(item_page)
+            try:
+                # this is the super-lightweight page used for the "powered by wowhead" tooltips
+                # print("Fetching item", '%s/item/%s' % (WOWHEAD_TOOLTIP_URL, itemid))
+                item_page = fetch('%s/item/%s' % (WOWHEAD_TOOLTIP_URL, itemid))
+                if type(item_page) == bytes:
+                    item_page = item_page.decode('utf-8')
+                item = json.loads(item_page)
 
-            # Note: there'll be multiple spellid links. I *think* we can trust the first one to be the "teaches" spellid
-            spellid_match = re.search(r'<a href="/spell=(\d+)["/]', item["tooltip"])
-            if spellid_match:
-                print("-", itemid, ":", item["name"], ":", spellid_match.group(1))
-                data.append((int(itemid), int(spellid_match.group(1)), item["name"].replace("\'", "'")))
-            # else:
-            #     print("Couldn't find spellid", itemid, item_page)
-    return data
+                # Note: there'll be multiple spellid links. I *think* we can trust the first one to be the "teaches" spellid
+                spellid_match = re.search(r'<a href="/spell=(\d+)["/]', item["tooltip"])
+                if spellid_match:
+                    print("-", itemid, ":", item["name"], ":", spellid_match.group(1))
+                    data.append((int(itemid), int(spellid_match.group(1)), item["name"].replace("\'", "'")))
+                # else:
+                #     print("Couldn't find spellid", itemid, item_page)
+            except Exception as e:
+                errors.append(itemid)
+    if len(errors):
+        print("!FAILED!", errors)
+    return data, errors
 
 
 def write_output(filename, data):
@@ -61,10 +67,10 @@ def write_output(filename, data):
 local myname, ns = ...
 ns.itemid_to_spellid = {
 """)
-        for itemid_spellid_name in sorted(data):
-            f.write('\t[%d] = %d, -- %s\n' % itemid_spellid_name)
+        for itemid, spellid, name in sorted(data):
+            f.write(f'\t[{itemid}] = {spellid}, -- {name}\n')
         f.write("}")
 
 if __name__ == '__main__':
-    data = fetch_data()
+    data, errors = fetch_data()
     write_output("../item_spell_map.lua", data)
