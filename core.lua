@@ -41,7 +41,7 @@ function core:OnLoad()
 
     if _G.TooltipDataProcessor then
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
-            self:OnTooltipSetItem(tooltip)
+            self:OnTooltipSetItem(tooltip, data)
         end)
     else
         self:HookScript(GameTooltip, "OnTooltipSetItem")
@@ -82,7 +82,7 @@ function core:OnLogin()
 end
 
 local tooltip_modified = {}
-function core:OnTooltipSetItem(tooltip)
+function core:OnTooltipSetItem(tooltip, data)
     local name, link, itemid = GetTooltipItem(tooltip)
     -- Debug("OnTooltipSetItem", name, link)
     if not (name and link) then return end
@@ -112,8 +112,17 @@ function core:OnTooltipSetItem(tooltip)
 
     local _, _, recipetype, _, _, class, subclass = C_Item.GetItemInfoInstant(itemid)
     if class == Enum.ItemClass.Recipe then
-        if not ns.itemid_to_spellid[itemid] then return end
         local spellid = ns.itemid_to_spellid[itemid]
+        if (data and data.lines) and not spellid then
+            -- ItemSpellTriggerLearn
+            for _, line in ipairs(data.lines) do
+                if line.type == Enum.TooltipDataLineType.ItemSpellTriggerLearn then
+                    spellid = line.spellID
+                    break
+                end
+            end
+        end
+        if not spellid then return end
         Debug("Updating tooltip", link, itemid, spellid, recipetype)
         -- we're on a recipe here!
         for alt, details in pairs(chars) do
