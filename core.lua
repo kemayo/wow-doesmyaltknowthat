@@ -131,19 +131,32 @@ function core:OnTooltipSetItem(tooltip, data)
             end
         end
         Debug("Updating tooltip", link, itemid, spellid, recipetype)
-        -- we're on a recipe here!
-        for alt, details in pairs(chars) do
-            Debug("Known on?", alt, details and details.professions[recipetype])
-            if details and details.professions[recipetype] then
-                -- alt knows this profession
-                local color = RAID_CLASS_COLORS[details.class] or NORMAL_FONT_COLOR
-                if details.professions[recipetype][spellid] then
-                    tooltip:AddDoubleLine(alt, ITEM_SPELL_KNOWN, color.r, color.g, color.b, GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b)
-                else
-                    -- ...and doesn't know this recipe!
-                    tooltip:AddDoubleLine(alt, LEARN, color.r, color.g, color.b, RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b)
+        local total, known = 0, 0
+        for _, realmchars in pairs(core.db.characters) do
+            for _, details in pairs(realmchars) do
+                if details and details.professions[recipetype] then
+                    total = total + 1
+                    if details.professions[recipetype][spellid] then
+                        known = known + 1
+                    end
                 end
             end
+        end
+        if total > 0 then
+            local left, right
+            local r, g, b = NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b
+            left = recipetype
+            if known == total then
+                right = "Already Known"
+                r, g, b = GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b
+            elseif known == 0 then
+                right = ("%d of %d Unknown"):format(total, total)
+                r, g, b = RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b
+            else
+                right = ("%d of %d Partial"):format(total - known, total)
+                r, g, b = 1, 0.82, 0  -- yellow
+            end
+            tooltip:AddDoubleLine(left, right, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, r, g, b)
         end
     end
 
