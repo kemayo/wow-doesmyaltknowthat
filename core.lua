@@ -140,16 +140,32 @@ function core:OnTooltipSetItem(tooltip, data)
             local r, g, b = NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b
             left = recipetype
             if known == total then
-                right = "Already Known"
+                right = PROFESSIONS_CATEGORY_LEARNED
                 r, g, b = GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b
             elseif known == 0 then
-                right = ("%d of %d Unknown"):format(total, total)
+                right = ("%d of %d %s"):format(total, total, PROFESSIONS_CATEGORY_UNLEARNED)
                 r, g, b = RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b
             else
-                right = ("%d of %d Partial"):format(total - known, total)
+                right = ("%d of %d %s"):format(total - known, total, INCOMPLETE)
                 r, g, b = 1, 0.82, 0  -- yellow
             end
             tooltip:AddDoubleLine(left, right, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, r, g, b)
+
+            if IsShiftKeyDown() then
+                for realmName, realmchars in pairs(core.db.characters) do
+                    for altName, details in pairs(realmchars) do
+                        if details and details.professions[recipetype] then
+                            local color = RAID_CLASS_COLORS[details.class] or NORMAL_FONT_COLOR
+                            local label = ("%s-%s"):format(altName, realmName)
+                            if details.professions[recipetype][spellid] then
+                                tooltip:AddDoubleLine(label, PROFESSIONS_CATEGORY_LEARNED, color.r, color.g, color.b, GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b)
+                            else
+                                tooltip:AddDoubleLine(label, PROFESSIONS_CATEGORY_UNLEARNED, color.r, color.g, color.b, RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b)
+                            end
+                        end
+                    end
+                end
+            end
         end
     end
 
