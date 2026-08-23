@@ -123,6 +123,13 @@ function core:OnTooltipSetItem(tooltip, data)
             end
         end
         if not spellid then return end
+        -- 12.1 housing schematics are ItemClass.Recipe but subtype Book, not Engineering.
+        if subclass == Enum.ItemRecipeSubclass.Book then
+            local info = C_TradeSkillUI.GetProfessionInfoByRecipeID(spellid)
+            if info then
+                recipetype = info.parentProfessionName or info.professionName or recipetype
+            end
+        end
         Debug("Updating tooltip", link, itemid, spellid, recipetype)
         -- we're on a recipe here!
         for alt, details in pairs(chars) do
